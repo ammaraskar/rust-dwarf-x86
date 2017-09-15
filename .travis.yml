@@ -1,5 +1,7 @@
 sudo: false
 language: rust
+env:
+
 # Dependencies of kcov, used by coverage
 addons:
   apt:
@@ -17,15 +19,20 @@ rust:
   - beta
   - nightly
 matrix:
+  fast_finish: true
+  include:
+    - rust: stable
+      env: COVERALLS=true
   allow_failures:
     - rust: nightly
+    - env: COVERALLS=true
 
 
-# load cargo-travis
+# handle uploading coverage to coveralls
 before_script:
   - |
-      cargo install cargo-travis &&
-      export PATH=$HOME/.cargo/bin:$PATH
+      if [ "$COVERALLS" = "true" ]; then cargo install cargo-travis &&
+      export PATH=$HOME/.cargo/bin:$PATH; fi
 
 after_success:
-  - if [ "$TRAVIS_RUST_VERSION" = "stable" ]; then cargo coveralls; fi
+  - if [ "$COVERALLS" = "true" ]; then cargo coveralls; fi

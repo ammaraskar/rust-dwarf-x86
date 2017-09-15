@@ -16,5 +16,6 @@ fn it_doesnt_load_non_executable() {
 
 #[test]
 fn it_loads_an_executable() {
-    dwarf_x86::load_executable(Path::new("./test_files/simple_executable")).unwrap();
+    let executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable")).unwrap();
+    println!("{:?}", executable);
 }
