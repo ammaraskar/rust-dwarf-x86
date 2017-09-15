@@ -7,6 +7,7 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
+      - binutils-dev 
 
 rust:
   - stable
@@ -24,4 +25,4 @@ before_script:
       export PATH=$HOME/.local/bin:$PATH
 
 after_success:
-  - if [ "$TRAVIS_RUST_VERSION" = "stable" ]; then travis-cargo coveralls --no-sudo; fi
+  - if [ "$TRAVIS_RUST_VERSION" = "stable" ]; then travis-cargo coveralls --no-sudo --verify; fi
