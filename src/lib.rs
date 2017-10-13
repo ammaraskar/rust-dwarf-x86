@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate enum_primitive;
 extern crate dwarf;
+extern crate leb128;
 
 mod dwarf_utils;
 mod consts;

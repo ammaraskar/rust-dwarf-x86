@@ -8,4 +8,5 @@ license = "BSD-3-Clause"
 
 [dependencies]
 dwarf = {git = "https://github.com/philipc/rust-dwarf/"}
+leb128 = "0.2.1"
 enum_primitive = "0.1.1"

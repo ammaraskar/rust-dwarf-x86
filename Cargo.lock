@@ -4,6 +4,7 @@ version = "0.1.0"
 dependencies = [
  "dwarf 0.0.3 (git+https://github.com/philipc/rust-dwarf/)",
  "enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "leb128 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -36,6 +37,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "leb128"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "num-traits"
 version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -45,4 +51,5 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum dwarf 0.0.3 (git+https://github.com/philipc/rust-dwarf/)" = "<none>"
 "checksum elf 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "4783a6b3216e433eb508e71f06a76195ba9017643b160d32d471b4397a79f84b"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
+"checksum leb128 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "792224a73787e4b0f59e387e4f53d23dfc1d72e3c82fcbf6d3e14de6aabad212"
 "checksum num-traits 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)" = "99843c856d68d8b4313b03a17e33c4bb42ae8f6610ea81b28abe076ac721b9b0"

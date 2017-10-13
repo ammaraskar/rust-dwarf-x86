@@ -3,6 +3,14 @@ extern crate dwarf_x86;
 use std::path::Path;
 
 #[test]
+fn it_scrapes_functions() {
+    let mut executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable"))
+        .unwrap();
+
+    executable.locate_functions();
+}
+
+#[test]
 fn it_gets_the_right_functions() {
     let mut executable = dwarf_x86::load_executable(Path::new("./test_files/register_argument"))
         .unwrap();
