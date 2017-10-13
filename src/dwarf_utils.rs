@@ -12,7 +12,7 @@ use consts;
 
 #[derive(Debug)]
 pub enum ArgumentLocation {
-    OffsetFromStackPointer { offset: i64 },
+    OffsetFromStackPointer(i64),
     Register(X86Register),
 }
 
@@ -53,7 +53,7 @@ pub fn convert_dw_at_location(dwarf_loc: &[u8]) -> ArgumentLocation {
     match dwarf_loc[0] {
         consts::DW_OP_regx => {
             let offset = read_leb128_i64(&dwarf_loc[1..]).unwrap();
-            ArgumentLocation::OffsetFromStackPointer { offset }
+            ArgumentLocation::OffsetFromStackPointer(offset)
         }
         consts::DW_OP_fbreg => {
             let register_number = read_u64(&dwarf_loc[1..]).unwrap();
