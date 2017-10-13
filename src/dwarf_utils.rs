@@ -12,8 +12,8 @@ use consts;
 
 #[derive(Debug)]
 pub enum ArgumentLocation {
-    OffsetFromStackPointer {offset: i64},
-    Register(X86Register)
+    OffsetFromStackPointer { offset: i64 },
+    Register(X86Register),
 }
 
 fn length_until_first_null(strings: &Vec<u8>, offset: usize) -> usize {
@@ -39,12 +39,8 @@ pub fn dwarf_str_to_string(string: &[u8]) -> String {
 
 pub fn convert_dw_at_name(attr: &die::Attribute, strings: &Vec<u8>) -> String {
     match attr.data {
-        die::AttributeData::StringOffset(val) => {
-            str_offset_to_string(val, strings)
-        }
-        die::AttributeData::String(val) => {
-            dwarf_str_to_string(val)
-        }
+        die::AttributeData::StringOffset(val) => str_offset_to_string(val, strings),
+        die::AttributeData::String(val) => dwarf_str_to_string(val),
         _ => panic!("Unexpected type for argument name"),
     }
 }
@@ -57,20 +53,20 @@ pub fn convert_dw_at_location(dwarf_loc: &[u8]) -> ArgumentLocation {
     match dwarf_loc[0] {
         consts::DW_OP_regx => {
             let offset = read_leb128_i64(&dwarf_loc[1..]).unwrap();
-            ArgumentLocation::OffsetFromStackPointer{ offset }
-        },
+            ArgumentLocation::OffsetFromStackPointer { offset }
+        }
         consts::DW_OP_fbreg => {
             let register_number = read_u64(&dwarf_loc[1..]).unwrap();
             let register = X86Register::from_u64(register_number).unwrap();
             ArgumentLocation::Register(register)
-        },
-        consts::DW_OP_reg0 ... consts::DW_OP_reg31 => {
+        }
+        consts::DW_OP_reg0...consts::DW_OP_reg31 => {
             // in this case the DW_OP_regn is the register number
             let register_number = dwarf_loc[0] - consts::DW_OP_reg0;
             let register = X86Register::from_u8(register_number).unwrap();
-            ArgumentLocation::Register(register)            
+            ArgumentLocation::Register(register)
         }
-        _ => panic!("Invalid location value")
+        _ => panic!("Invalid location value"),
     }
 }
 

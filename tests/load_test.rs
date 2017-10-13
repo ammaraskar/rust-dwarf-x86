@@ -12,10 +12,11 @@ fn it_doesnt_load_non_existent_file() {
 #[should_panic]
 fn it_doesnt_load_non_executable() {
     dwarf_x86::load_executable(Path::new("./README.md")).unwrap();
-} 
+}
 
 #[test]
 fn it_loads_an_executable() {
-    let executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable")).unwrap();
+    let executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable"))
+        .unwrap();
     println!("{:?}", executable);
 }

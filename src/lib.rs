@@ -1,4 +1,5 @@
-#[macro_use] extern crate enum_primitive;
+#[macro_use]
+extern crate enum_primitive;
 extern crate dwarf;
 
 mod dwarf_utils;
@@ -13,14 +14,14 @@ use dwarf::die;
 #[derive(Debug)]
 pub struct Argument {
     name: String,
-    location: ArgumentLocation
+    location: ArgumentLocation,
 }
 
 #[derive(Debug)]
 pub struct Function {
     name: String,
     arguments: Vec<Argument>,
-    start_address: u64
+    start_address: u64,
 }
 
 #[derive(Debug)]
@@ -31,36 +32,41 @@ pub struct Executable {
 }
 
 fn process_function_child(entry: &die::Die, strings: &Vec<u8>) -> Option<Argument> {
-    if entry.tag != dwarf::constant::DW_TAG_formal_parameter  {
+    if entry.tag != dwarf::constant::DW_TAG_formal_parameter {
         return None;
     }
     let mut arg_name: Result<String, &'static str> = Err("Argument doesn't have a name attribute");
-    let mut location: Result<ArgumentLocation, &'static str> = Err("Argument doesn't have a location attribute");
+    let mut location: Result<ArgumentLocation, &'static str> =
+        Err("Argument doesn't have a location attribute");
 
     for attr in &entry.attributes {
         match attr.at {
             dwarf::constant::DW_AT_name => {
                 arg_name = Ok(dwarf_utils::convert_dw_at_name(attr, strings));
-            },
+            }
             dwarf::constant::DW_AT_location => {
                 match attr.data {
                     die::AttributeData::ExprLoc(val) => {
                         location = Ok(dwarf_utils::convert_dw_at_location(val));
                     }
-                    _ => panic!("Unexpected type for argument location")
+                    _ => panic!("Unexpected type for argument location"),
                 }
             }
             _ => (),
         }
     }
 
-    return Some(Argument{
+    return Some(Argument {
         name: arg_name.unwrap(),
-        location: location.unwrap()
+        location: location.unwrap(),
     });
 }
 
-fn get_function_from_dwarf_entry(entry: &die::Die, tree: die::DieTree<dwarf::AnyEndian>, strings: &Vec<u8>) -> Function {
+fn get_function_from_dwarf_entry(
+    entry: &die::Die,
+    tree: die::DieTree<dwarf::AnyEndian>,
+    strings: &Vec<u8>,
+) -> Function {
     let mut func_name: Result<String, &'static str> = Err("Function doesn't have a name attribute");
     let mut start_address: Result<u64, &'static str> =
         Err("Function doesn't have starting address");
@@ -93,15 +99,15 @@ fn get_function_from_dwarf_entry(entry: &die::Die, tree: die::DieTree<dwarf::Any
         match argument {
             Some(argument) => {
                 args.push(argument);
-            },
+            }
             _ => {}
         }
     }
 
-    return Function { 
+    return Function {
         name: func_name.unwrap(),
         arguments: args,
-        start_address: start_address.unwrap()
+        start_address: start_address.unwrap(),
     };
 }
 
