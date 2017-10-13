@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Ammar Askar <ammar@ammaraskar.com>"]
 description = "High level API to read debug info for x86 binaries"
 repository = "https://github.com/ammaraskar/rust-dwarf-x86"
-license = "Apache-2.0"
+license = "BSD-3-Clause"
 
 [dependencies]
 dwarf = {git = "https://github.com/philipc/rust-dwarf/"}
