@@ -13,22 +13,22 @@ use dwarf::die;
 
 #[derive(Debug)]
 pub struct Argument {
-    name: String,
-    location: ArgumentLocation,
+    pub name: String,
+    pub location: ArgumentLocation,
 }
 
 #[derive(Debug)]
 pub struct Function {
-    name: String,
-    arguments: Vec<Argument>,
-    start_address: u64,
+    pub name: String,
+    pub arguments: Vec<Argument>,
+    pub start_address: u64,
 }
 
 #[derive(Debug)]
 pub struct Executable {
     path: path::PathBuf,
     sections: dwarf::Sections<dwarf::AnyEndian>,
-    functions: Vec<Function>,
+    pub functions: Vec<Function>,
 }
 
 fn process_function_child(entry: &die::Die, strings: &Vec<u8>) -> Option<Argument> {
@@ -120,7 +120,7 @@ impl Executable {
         };
     }
 
-    pub fn locate_functions(mut self) {
+    pub fn locate_functions(&mut self) {
         if self.functions.len() > 0 {
             self.functions.clear();
         }
@@ -135,7 +135,6 @@ impl Executable {
                     let tree = unit.entry(entry.offset, &abbrev).unwrap().tree();
                     let func = get_function_from_dwarf_entry(entry, tree, &self.sections.debug_str);
 
-                    println!("{:?}", func);
                     self.functions.push(func);
                 }
             }
