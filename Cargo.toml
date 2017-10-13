@@ -6,4 +6,5 @@ description = "High level API to read debug info for x86 binaries"
 repository = "https://github.com/ammaraskar/rust-dwarf-x86"
 
 [dependencies]
-dwarf = "0.0.3"
+dwarf = {git = "https://github.com/philipc/rust-dwarf/"}
+enum_primitive = "0.1.1"
