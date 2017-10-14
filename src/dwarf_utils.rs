@@ -1,11 +1,5 @@
 use enum_primitive::FromPrimitive;
-use dwarf::die;
 use leb128;
-
-use std::iter::FromIterator;
-use std::ffi::CString;
-use std::str;
-
 
 use consts::X86Register;
 use consts;
@@ -16,34 +10,6 @@ pub enum ArgumentLocation {
     Register(X86Register),
 }
 
-fn length_until_first_null(strings: &Vec<u8>, offset: usize) -> usize {
-    let mut len: usize = 0;
-    while strings[offset + len] != 0 {
-        len += 1;
-    }
-    return len;
-}
-
-pub fn str_offset_to_string(offset: u64, strings: &Vec<u8>) -> String {
-    let offset = offset as usize;
-    let length = length_until_first_null(strings, offset);
-
-    let string = Vec::from_iter(strings[offset..(offset + length)].iter().cloned());
-    let string = unsafe { CString::from_vec_unchecked(string) };
-    string.to_str().unwrap().to_owned()
-}
-
-pub fn dwarf_str_to_string(string: &[u8]) -> String {
-    String::from_utf8_lossy(string).into_owned()
-}
-
-pub fn convert_dw_at_name(attr: &die::Attribute, strings: &Vec<u8>) -> String {
-    match attr.data {
-        die::AttributeData::StringOffset(val) => str_offset_to_string(val, strings),
-        die::AttributeData::String(val) => dwarf_str_to_string(val),
-        _ => panic!("Unexpected type for argument name"),
-    }
-}
 
 pub fn convert_dw_at_location(dwarf_loc: &[u8]) -> ArgumentLocation {
     if dwarf_loc.len() < 1 {

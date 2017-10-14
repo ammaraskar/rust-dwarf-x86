@@ -4,19 +4,18 @@ use std::path::Path;
 
 #[test]
 fn it_scrapes_functions() {
-    let mut executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable"))
+    let executable = dwarf_x86::load_executable(Path::new("./test_files/simple_executable"))
         .unwrap();
 
-    executable.locate_functions();
+    executable.get_functions();
 }
 
 #[test]
 fn it_gets_the_right_functions() {
-    let mut executable = dwarf_x86::load_executable(Path::new("./test_files/register_argument"))
+    let executable = dwarf_x86::load_executable(Path::new("./test_files/register_argument"))
         .unwrap();
 
-    executable.locate_functions();
-    for func in executable.functions {
+    for func in executable.get_functions() {
         if func.name == "main" {
             assert_eq!(func.arguments.len(), 2);
 

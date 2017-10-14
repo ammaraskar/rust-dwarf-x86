@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate enum_primitive;
-extern crate dwarf;
+extern crate elf;
+extern crate gimli;
 extern crate leb128;
 
 mod dwarf_utils;
@@ -9,8 +10,6 @@ mod consts;
 pub use dwarf_utils::ArgumentLocation;
 
 use std::path;
-use dwarf::elf;
-use dwarf::die;
 
 #[derive(Debug)]
 pub struct Argument {
@@ -28,27 +27,33 @@ pub struct Function {
 #[derive(Debug)]
 pub struct Executable {
     path: path::PathBuf,
-    sections: dwarf::Sections<dwarf::AnyEndian>,
-    pub functions: Vec<Function>,
+    file: elf::File,
+    endianess: gimli::RunTimeEndian,
 }
 
-fn process_function_child(entry: &die::Die, strings: &Vec<u8>) -> Option<Argument> {
-    if entry.tag != dwarf::constant::DW_TAG_formal_parameter {
+fn process_function_child(
+    entry: &gimli::DebuggingInformationEntry<gimli::EndianBuf<gimli::RunTimeEndian>>,
+    strings: &gimli::DebugStr<gimli::EndianBuf<gimli::RunTimeEndian>>,
+) -> Option<Argument> {
+    if entry.tag() != gimli::DW_TAG_formal_parameter {
         return None;
     }
     let mut arg_name: Result<String, &'static str> = Err("Argument doesn't have a name attribute");
     let mut location: Result<ArgumentLocation, &'static str> =
         Err("Argument doesn't have a location attribute");
 
-    for attr in &entry.attributes {
-        match attr.at {
-            dwarf::constant::DW_AT_name => {
-                arg_name = Ok(dwarf_utils::convert_dw_at_name(attr, strings));
+    let mut attrs = entry.attrs();
+    while let Some(attr) = attrs.next().unwrap() {
+        match attr.name() {
+            gimli::DW_AT_name => {
+                let arg_name_str = attr.string_value(strings).unwrap().to_string_lossy();
+                arg_name = Ok(arg_name_str.into_owned());
             }
-            dwarf::constant::DW_AT_location => {
-                match attr.data {
-                    die::AttributeData::ExprLoc(val) => {
-                        location = Ok(dwarf_utils::convert_dw_at_location(val));
+            gimli::DW_AT_location => {
+                match attr.value() {
+                    gimli::AttributeValue::Exprloc(expr) => {
+                        let buf = expr.0.buf();
+                        location = Ok(dwarf_utils::convert_dw_at_location(buf));
                     }
                     _ => panic!("Unexpected type for argument location"),
                 }
@@ -64,24 +69,28 @@ fn process_function_child(entry: &die::Die, strings: &Vec<u8>) -> Option<Argumen
 }
 
 fn get_function_from_dwarf_entry(
-    entry: &die::Die,
-    tree: die::DieTree<dwarf::AnyEndian>,
-    strings: &Vec<u8>,
+    node: gimli::EntriesTreeNode<gimli::EndianBuf<gimli::RunTimeEndian>>,
+    strings: &gimli::DebugStr<gimli::EndianBuf<gimli::RunTimeEndian>>,
 ) -> Function {
     let mut func_name: Result<String, &'static str> = Err("Function doesn't have a name attribute");
     let mut start_address: Result<u64, &'static str> =
         Err("Function doesn't have starting address");
 
-    for attr in &entry.attributes {
-        match attr.at {
-            dwarf::constant::DW_AT_name => {
-                func_name = Ok(dwarf_utils::convert_dw_at_name(attr, strings))
+    let entry = {
+        node.entry().clone()
+    };
+    let mut attrs = entry.attrs();
+    while let Some(attr) = attrs.next().unwrap() {
+        match attr.name() {
+            gimli::DW_AT_name => {
+                let func_name_str = attr.string_value(strings).unwrap().to_string_lossy();
+                func_name = Ok(func_name_str.into_owned());
             }
-            dwarf::constant::DW_AT_low_pc => {
-                start_address = Ok(match attr.data {
-                    die::AttributeData::Address(val) => val,
-                    _ => panic!("Unexpected type for low_pc"),
-                });
+            gimli::DW_AT_low_pc => {
+                match attr.value() {
+                    gimli::AttributeValue::Addr(val) => start_address = Ok(val),
+                    _ => panic!("Invalid type for function start address"),
+                }
             }
             _ => (),
         };
@@ -90,12 +99,9 @@ fn get_function_from_dwarf_entry(
     let mut args: Vec<Argument> = Vec::new();
 
     // iterate over the children to get the arguments
-    let mut tree = tree;
-    // skip the first element as that is the function itself
-    let mut tree = tree.iter();
-    let mut tree = tree.next().unwrap().unwrap();
+    let mut children = node.children();
 
-    while let Some(child) = tree.next().unwrap() {
+    while let Some(child) = children.next().unwrap() {
         let argument = process_function_child(child.entry(), strings);
         match argument {
             Some(argument) => {
@@ -113,37 +119,96 @@ fn get_function_from_dwarf_entry(
 }
 
 impl Executable {
-    fn new(path: &path::Path, sections: dwarf::Sections<dwarf::AnyEndian>) -> Executable {
-        return Executable {
-            path: path::PathBuf::from(path),
-            sections: sections,
-            functions: Vec::new(),
-        };
+    pub fn debug_info<'a>(
+        &'a self,
+    ) -> gimli::DebugInfo<gimli::EndianBuf<'a, gimli::RunTimeEndian>> {
+        let debug_info = self.file.get_section(".debug_info").unwrap();
+        return gimli::DebugInfo::new(&debug_info.data, self.endianess);
     }
 
-    pub fn locate_functions(&mut self) {
-        if self.functions.len() > 0 {
-            self.functions.clear();
-        }
+    pub fn debug_abbrev<'a>(
+        &'a self,
+    ) -> gimli::DebugAbbrev<gimli::EndianBuf<'a, gimli::RunTimeEndian>> {
+        let debug_abbrev = self.file.get_section(".debug_abbrev").unwrap();
+        return gimli::DebugAbbrev::new(&debug_abbrev.data, self.endianess);
+    }
 
-        let mut units = self.sections.compilation_units();
+    pub fn debug_str<'a>(&'a self) -> gimli::DebugStr<gimli::EndianBuf<'a, gimli::RunTimeEndian>> {
+        let debug_str = self.file.get_section(".debug_str").unwrap();
+        return gimli::DebugStr::new(&debug_str.data, self.endianess);
+    }
+
+    pub fn get_functions(self) -> Vec<Function> {
+        let mut functions: Vec<Function> = Vec::new();
+
+        let debug_info = self.debug_info();
+        let debug_abbrev = self.debug_abbrev();
+        let debug_str = self.debug_str();
+
+        let mut units = debug_info.units();
         while let Some(unit) = units.next().unwrap() {
-            let abbrev = self.sections.abbrev(&unit.common).unwrap();
-            let mut entries = unit.entries(&abbrev);
+            let abbrev = unit.abbreviations(&debug_abbrev).unwrap();
 
-            while let Some(entry) = entries.next().unwrap() {
-                if entry.tag == dwarf::constant::DW_TAG_subprogram {
-                    let tree = unit.entry(entry.offset, &abbrev).unwrap().tree();
-                    let func = get_function_from_dwarf_entry(entry, tree, &self.sections.debug_str);
+            let mut tree = unit.entries_tree(&abbrev, None).unwrap();
+            let mut tree = tree.root().unwrap().children();
 
-                    self.functions.push(func);
+            while let Some(child) = tree.next().unwrap() {
+                let entry = {
+                    child.entry().clone()
+                };
+                if entry.tag() == gimli::DW_TAG_subprogram {
+                    let func = get_function_from_dwarf_entry(child, &debug_str);
+
+                    functions.push(func);
                 }
             }
         }
+
+        return functions;
     }
 }
 
-pub fn load_executable(path: &path::Path) -> Result<Executable, dwarf::ReadError> {
-    let sections = elf::load(path)?;
-    return Ok(Executable::new(path, sections));
+#[derive(Debug)]
+pub enum ExecutableLoadError {
+    Parse(elf::ParseError),
+    InvalidFile(&'static str),
+    MissingSection(&'static str),
+}
+
+pub fn load_executable(path: &path::Path) -> Result<Executable, ExecutableLoadError> {
+    let elf_file = try!(elf::File::open_path(&path).map_err(
+        ExecutableLoadError::Parse,
+    ));
+
+    let endianess = match elf_file.ehdr.data {
+        elf::types::ELFDATA2LSB => gimli::RunTimeEndian::Little,
+        elf::types::ELFDATA2MSB => gimli::RunTimeEndian::Big,
+        _ => {
+            return Err(ExecutableLoadError::InvalidFile(
+                "Invalid ELF file, not little endian or big endian",
+            ))
+        }
+    };
+
+    if elf_file.get_section(".debug_info").is_none() {
+        return Err(ExecutableLoadError::MissingSection(
+            "Missing debug_info section",
+        ));
+    }
+    if elf_file.get_section(".debug_abbrev").is_none() {
+        return Err(ExecutableLoadError::MissingSection(
+            "Missing debug_abbrev section",
+        ));
+    }
+    if elf_file.get_section(".debug_str").is_none() {
+        return Err(ExecutableLoadError::MissingSection(
+            "Missing debug_str section",
+        ));
+    }
+
+    return Ok(Executable {
+        path: path::PathBuf::from(path),
+        file: elf_file,
+        endianess: endianess,
+    });
 }
