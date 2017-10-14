@@ -8,6 +8,7 @@ mod dwarf_utils;
 mod consts;
 
 pub use dwarf_utils::ArgumentLocation;
+pub use consts::X86Register;
 
 use std::path;
 

@@ -7,7 +7,7 @@ pub const DW_OP_reg0: u8 = 0x50;
 pub const DW_OP_reg31: u8 = 0x6f;
 
 enum_from_primitive! {
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum X86Register {
     rax = 0,
     rdx = 1,
