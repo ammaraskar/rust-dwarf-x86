@@ -12,7 +12,7 @@ pub use consts::X86Register;
 
 use std::path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Argument {
     pub name: String,
     pub location: ArgumentLocation,

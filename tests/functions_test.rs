@@ -21,11 +21,21 @@ fn it_gets_the_right_functions() {
 
             assert_eq!(func.arguments[0].name, "argc");
             assert_eq!(func.arguments[1].name, "argv");
+
+            // first argument is passed in RDI
+            let location = func.arguments[0].location;
+            match location {
+                dwarf_x86::ArgumentLocation::Register(r) => {
+                    assert_eq!(r, dwarf_x86::X86Register::rdi);
+                }
+                _ => panic!("argc should have been in a register"),
+            }
         } else if func.name == "somefunc" {
             assert_eq!(func.arguments.len(), 2);
 
             assert_eq!(func.arguments[0].name, "a");
             assert_eq!(func.arguments[1].name, "b");
+
         } else if func.name == "someOtherFunc" {
             assert_eq!(func.arguments.len(), 3);
 

@@ -4,7 +4,7 @@ use leb128;
 use consts::X86Register;
 use consts;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum ArgumentLocation {
     OffsetFromStackPointer(i64),
     Register(X86Register),
