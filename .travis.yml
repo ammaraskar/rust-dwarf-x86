@@ -35,4 +35,4 @@ before_script:
       export PATH=$HOME/.cargo/bin:$PATH; fi
 
 after_success:
-  - if [ "$COVERALLS" = "true" ]; then cargo coveralls; fi
+  - if [ "$COVERALLS" = "true" ]; then cargo coveralls --exclude-pattern tests/; fi
